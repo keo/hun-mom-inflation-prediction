@@ -87,6 +87,11 @@ def predict_inflation(df, periods=2):
         msg = f"Insufficient data: need {required_months} months, but have {len(df)} months"
         raise ValueError(msg)
 
+    # Add validation for maximum safe periods
+    max_safe_periods = min(12, len(df)//3)  # Never more than 1 year, and 1/3 of history length
+    if periods > max_safe_periods:
+        raise ValueError(f"Maximum safe prediction period is {max_safe_periods} months")
+
     next_months = pd.date_range(start=df.index[-1], periods=periods+1, freq='M')[1:]
 
     try:
@@ -133,14 +138,14 @@ def main():
         df_processed = prepare_data(df_hungary)
         df = df_processed.tail(36)
 
-        print("\nGenerating predictions...")
-        result = predict_inflation(df, periods=2)
+        print("\nRecent actual values:")
+        print(df['Inflation'].tail(6).to_string())
 
         for month, forecast_value in zip(result['next_months'], result['forecast']):
             print(f"Estimated inflation for {month.strftime('%Y-%m')}: {forecast_value:.2f}%")
 
-        print("\nRecent actual values:")
-        print(df['Inflation'].tail(6).to_string())
+        print("\nGenerating predictions...")
+        result = predict_inflation(df, periods=3)
 
         if result['model_stats']:
             print("\nModel Statistics:")
